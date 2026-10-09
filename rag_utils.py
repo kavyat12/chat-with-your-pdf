@@ -1,3 +1,6 @@
+```python
+import os
+
 import chromadb
 import streamlit as st
 from groq import Groq
@@ -6,7 +9,7 @@ from groq import Groq
 @st.cache_resource
 def get_embedding_model():
     """
-    Load the embedding model only when a PDF is processed.
+    Load the embedding model only when needed.
     """
 
     from sentence_transformers import SentenceTransformer
@@ -20,22 +23,21 @@ def create_vector_store(chunks):
     with their embeddings.
     """
 
+    if not chunks:
+        raise ValueError("No text chunks are available to store.")
+
     embedding_model = get_embedding_model()
 
+    # Create a fresh in-memory ChromaDB client for this PDF.
     client = chromadb.Client()
 
-    collection = client.get_or_create_collection(
-        name="pdf_documents"
+    collection = client.create_collection(
+        name="pdf_" + os.urandom(8).hex()
     )
 
-    embeddings = embedding_model.encode(
-        chunks
-    ).tolist()
+    embeddings = embedding_model.encode(chunks).tolist()
 
-    ids = [
-        f"chunk_{i}"
-        for i in range(len(chunks))
-    ]
+    ids = [f"chunk_{i}" for i in range(len(chunks))]
 
     collection.add(
         ids=ids,
@@ -51,31 +53,63 @@ def retrieve_chunks(collection, question, top_k=3):
     Retrieve the most relevant PDF chunks.
     """
 
+    if not question.strip():
+        return []
+
     embedding_model = get_embedding_model()
 
     question_embedding = embedding_model.encode(
         [question]
     ).tolist()
 
+    # Never request more chunks than the collection contains.
+    count = collection.count()
+
+    if count == 0:
+        return []
+
     results = collection.query(
         query_embeddings=question_embedding,
-        n_results=top_k
+        n_results=min(top_k, count)
     )
 
-    return results["documents"][0]
+    return results.get("documents", [[]])[0]
+
+
+def get_groq_api_key():
+    """
+    Read the API key from the environment first,
+    then from Streamlit Secrets.
+    """
+
+    api_key = os.getenv("GROQ_API_KEY")
+
+    if api_key:
+        return api_key
+
+    try:
+        api_key = st.secrets.get("GROQ_API_KEY")
+    except Exception:
+        api_key = None
+
+    return api_key
 
 
 def generate_answer(question, retrieved_chunks):
     """
-    Generate an answer using only retrieved PDF context.
+    Generate an answer grounded in retrieved PDF context.
     """
 
-    api_key = st.secrets.get("GROQ_API_KEY")
+    api_key = get_groq_api_key()
 
     if not api_key:
         raise ValueError(
-            "GROQ_API_KEY is not configured in Streamlit secrets."
+            "Groq API key is missing. Configure GROQ_API_KEY "
+            "in Streamlit Cloud Secrets or the hosting environment."
         )
+
+    if not retrieved_chunks:
+        return "I don't know based on the provided context"
 
     client = Groq(api_key=api_key)
 
@@ -91,7 +125,8 @@ If the answer cannot be found in the context, respond exactly:
 
 I don't know based on the provided context
 
-Do not use outside knowledge.
+Do not use outside knowledge. If the context does not
+support an answer, use the exact refusal above.
 
 Context:
 {context}
@@ -131,3 +166,4 @@ def ask_question(collection, question, top_k=3):
     )
 
     return answer, retrieved_chunks
+```
