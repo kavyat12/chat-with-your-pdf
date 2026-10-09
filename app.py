@@ -70,11 +70,8 @@ with st.sidebar:
 
     st.divider()
 
-    # New Chat clears only conversation history
     if st.button("New Chat", use_container_width=True):
-
         st.session_state.messages = []
-
         st.rerun()
 
 
@@ -89,24 +86,19 @@ uploaded_file = st.file_uploader(
 
 
 # --------------------------------------------------
-# Process uploaded PDF
+# Process PDF
 # --------------------------------------------------
 
 if uploaded_file is not None:
 
-    # Process only when a new PDF is uploaded
+    # Process the PDF when it changes
     if st.session_state.pdf_name != uploaded_file.name:
-
-        # New PDF means a completely new conversation
-        st.session_state.messages = []
-        st.session_state.collection = None
-        st.session_state.pdf_name = uploaded_file.name
 
         with st.spinner("Reading and processing your PDF..."):
 
             try:
 
-                # Extract text from PDF
+                # Extract text
                 text = extract_text_from_pdf(uploaded_file)
 
                 if not text.strip():
@@ -117,9 +109,10 @@ if uploaded_file is not None:
                     )
 
                     st.session_state.collection = None
+                    st.session_state.pdf_name = None
                     st.stop()
 
-                # Split extracted text into overlapping chunks
+                # Create chunks
                 chunks = chunk_text(
                     text,
                     chunk_size=250,
@@ -133,13 +126,16 @@ if uploaded_file is not None:
                     )
 
                     st.session_state.collection = None
+                    st.session_state.pdf_name = None
                     st.stop()
 
-                # Create ChromaDB vector store
+                # Create vector store
                 collection = create_vector_store(chunks)
 
-                # Store vector collection
+                # Save everything in session state
                 st.session_state.collection = collection
+                st.session_state.pdf_name = uploaded_file.name
+                st.session_state.messages = []
 
                 st.success(
                     f"PDF processed successfully. "
@@ -149,6 +145,7 @@ if uploaded_file is not None:
             except Exception as e:
 
                 st.session_state.collection = None
+                st.session_state.pdf_name = None
 
                 st.error(
                     f"An error occurred while processing the PDF: {e}"
@@ -158,7 +155,6 @@ if uploaded_file is not None:
 
     else:
 
-        # Current PDF is already processed
         if st.session_state.collection is not None:
 
             st.success(
@@ -173,7 +169,6 @@ if uploaded_file is not None:
 for message in st.session_state.messages:
 
     with st.chat_message(message["role"]):
-
         st.markdown(message["content"])
 
 
@@ -192,7 +187,6 @@ question = st.chat_input(
 
 if question:
 
-    # Make sure a processed PDF is available
     if st.session_state.collection is None:
 
         st.warning(
@@ -201,7 +195,7 @@ if question:
 
         st.stop()
 
-    # Add user message to history
+    # Save user question
     st.session_state.messages.append(
         {
             "role": "user",
@@ -210,7 +204,6 @@ if question:
     )
 
     with st.chat_message("user"):
-
         st.markdown(question)
 
     # Generate answer
@@ -230,7 +223,6 @@ if question:
 
                 st.markdown(answer)
 
-                # Show retrieved PDF content
                 with st.expander(
                     "View retrieved PDF content"
                 ):
@@ -247,10 +239,8 @@ if question:
                         st.write(chunk)
 
                         if i < len(retrieved_chunks):
-
                             st.divider()
 
-                # Save assistant response
                 st.session_state.messages.append(
                     {
                         "role": "assistant",

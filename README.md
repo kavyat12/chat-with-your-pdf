@@ -1,42 +1,46 @@
 # Chat With Your PDF
 
-Chat With Your PDF is a Streamlit-based RAG application that allows users to upload a PDF and ask questions about its content.
+A RAG-based PDF question-answering application built with Python, Streamlit, ChromaDB, sentence-transformers, and Groq LLM.
 
-The application extracts text from the uploaded PDF, divides the text into overlapping chunks, creates embeddings using a sentence-transformer model, stores the embeddings in ChromaDB, retrieves the most relevant content for a question, and generates a grounded answer using the Groq API.
+## Overview
 
-The application is designed to answer questions using only the information available in the uploaded PDF.
+Chat With Your PDF is a Retrieval-Augmented Generation (RAG) application that allows users to upload a PDF document and ask questions about its content.
 
----
+The application extracts text from the uploaded PDF, divides the text into overlapping chunks, creates embeddings using a sentence-transformer model, stores the embeddings in ChromaDB, and retrieves the most relevant chunks for each user question.
+
+The retrieved PDF content is then provided to the Groq LLM as context so that the generated answer is grounded in the uploaded document.
+
+If the requested information cannot be found in the retrieved PDF context, the application responds:
+
+> I don't know based on the provided context
 
 ## Features
 
-- Upload PDF documents
+- Upload PDF documents through a Streamlit interface
 - Extract text from PDF files
-- Split PDF text into overlapping chunks
-- Generate text embeddings
-- Store document embeddings in ChromaDB
+- Split extracted text into overlapping chunks
+- Generate embeddings using sentence-transformers
+- Store document embeddings using ChromaDB
 - Retrieve relevant PDF content using semantic search
-- Generate answers using the Groq API
-- Chat-style interface using Streamlit
+- Generate grounded answers using Groq LLM
 - Maintain conversation history during the session
 - Display retrieved PDF content used for answering
-- Refuse questions when the answer is not available in the PDF
+- Support starting a new chat without re-uploading the current PDF
 - Detect PDFs with no extractable text
-- Start a new chat without removing the currently loaded PDF
-- Upload a different PDF and automatically process it
-
----
+- Handle empty or invalid PDF processing cases
+- Deployable using Streamlit Community Cloud
 
 ## Technologies Used
 
 - Python
 - Streamlit
 - Groq API
-- Llama / Groq-hosted LLM
-- sentence-transformers
 - ChromaDB
+- sentence-transformers
 - pypdf
-- python-dotenv
+- Python dotenv
+
+## Models Used
 
 ### Embedding Model
 
