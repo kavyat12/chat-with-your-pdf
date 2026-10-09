@@ -46,3 +46,16 @@ If the requested information cannot be found in the retrieved PDF context, the a
 
 ```text
 all-MiniLM-L6-v2
+## Screenshots
+
+### PDF Upload
+
+![Chat With Your PDF - Upload](assets/screenshot.png)
+
+### Question and Answer
+
+![Chat With Your PDF - Answer](assets/screenshot2.png)
+
+### Demo
+
+![Chat With Your PDF Demo](assets/demo.gif)
